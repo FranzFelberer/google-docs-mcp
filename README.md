@@ -98,6 +98,27 @@ The server starts automatically when your MCP client needs it.
 | `freezeRowsAndColumns`  | Pin header rows/columns                |
 | `setDropdownValidation` | Add/remove dropdown lists on cells     |
 
+### Google Sheets Tables
+
+| Tool               | Description                                    |
+| ------------------ | ---------------------------------------------- |
+| `createTable`      | Create a new named table with column types     |
+| `listTables`       | List all tables in a spreadsheet or sheet      |
+| `getTable`         | Get detailed table metadata by name or ID      |
+| `deleteTable`      | Delete a table (optionally clear data)         |
+| `updateTableRange` | Modify table dimensions (add/remove rows/cols) |
+| `appendTableRows`  | Append rows to a table (table-aware insertion) |
+
+**Table Usage Examples**:
+
+```
+"Create a table named 'Project Tracker' in range A1:E10 with a Status dropdown column"
+"List all tables in spreadsheet XYZ789"
+"Get details for table 'Project Tracker'"
+"Append 3 rows to table 'Project Tracker'"
+"Delete table 'Project Tracker' but keep the data"
+```
+
 ### Google Drive
 
 | Tool                 | Description                                 |
@@ -138,6 +159,7 @@ The server starts automatically when your MCP client needs it.
 "Format row 1 as bold with a light blue background in spreadsheet XYZ789"
 "Freeze the first row in spreadsheet XYZ789"
 "Add a dropdown with options [Open, In Progress, Done] to range C2:C100"
+"Create a table named 'Tasks' in range A1:D10 with columns: Task (TEXT), Status (DROPDOWN: 'Not Started','In Progress','Done'), Priority (NUMBER)"
 ```
 
 ### Google Drive

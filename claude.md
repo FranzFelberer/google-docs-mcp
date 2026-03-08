@@ -1,18 +1,19 @@
 # Google Docs MCP Server
 
-FastMCP server with 44 tools for Google Docs, Sheets, and Drive.
+FastMCP server with 50 tools for Google Docs, Sheets, and Drive.
 
 ## Tool Categories
 
-| Category   | Count | Examples                                                                                                                            |
-| ---------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Docs       | 5     | `readGoogleDoc`, `appendToGoogleDoc`, `insertText`, `deleteRange`, `listDocumentTabs`                                               |
-| Markdown   | 2     | `replaceDocumentWithMarkdown`, `appendMarkdownToGoogleDoc`                                                                          |
-| Formatting | 3     | `applyTextStyle`, `applyParagraphStyle`, `formatMatchingText`                                                                       |
-| Structure  | 7     | `insertTable`, `insertPageBreak`, `insertImageFromUrl`, `insertLocalImage`, `editTableCell`_, `findElement`_, `fixListFormatting`\* |
-| Comments   | 6     | `listComments`, `getComment`, `addComment`, `replyToComment`, `resolveComment`, `deleteComment`                                     |
-| Sheets     | 8     | `readSpreadsheet`, `writeSpreadsheet`, `appendSpreadsheetRows`, `clearSpreadsheetRange`, `createSpreadsheet`, `listGoogleSheets`    |
-| Drive      | 13    | `listGoogleDocs`, `searchGoogleDocs`, `getDocumentInfo`, `createFolder`, `moveFile`, `copyFile`, `createDocument`                   |
+| Category      | Count | Examples                                                                                                                            |
+| ------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Docs          | 5     | `readGoogleDoc`, `appendToGoogleDoc`, `insertText`, `deleteRange`, `listDocumentTabs`                                               |
+| Markdown      | 2     | `replaceDocumentWithMarkdown`, `appendMarkdownToGoogleDoc`                                                                          |
+| Formatting    | 3     | `applyTextStyle`, `applyParagraphStyle`, `formatMatchingText`                                                                       |
+| Structure     | 7     | `insertTable`, `insertPageBreak`, `insertImageFromUrl`, `insertLocalImage`, `editTableCell`_, `findElement`_, `fixListFormatting`\* |
+| Comments      | 6     | `listComments`, `getComment`, `addComment`, `replyToComment`, `resolveComment`, `deleteComment`                                     |
+| Sheets        | 8     | `readSpreadsheet`, `writeSpreadsheet`, `appendSpreadsheetRows`, `clearSpreadsheetRange`, `createSpreadsheet`, `listGoogleSheets`    |
+| Sheets Tables | 6     | `createTable`, `listTables`, `getTable`, `deleteTable`, `updateTableRange`, `appendTableRows`                                       |
+| Drive         | 13    | `listGoogleDocs`, `searchGoogleDocs`, `getDocumentInfo`, `createFolder`, `moveFile`, `copyFile`, `createDocument`                   |
 
 \*Not fully implemented
 

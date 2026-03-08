@@ -610,3 +610,286 @@ export function hexToRgb(hex: string): { red: number; green: number; blue: numbe
     blue: (bigint & 255) / 255,
   };
 }
+
+// --- Table Helper Functions ---
+
+/**
+ * Resolves a table name or ID to a table object with sheet context.
+ * Searches through all sheets in the spreadsheet.
+ */
+export async function resolveTableIdentifier(
+  sheets: Sheets,
+  spreadsheetId: string,
+  tableIdentifier: string
+): Promise<{
+  table: sheets_v4.Schema$Table;
+  sheetId: number;
+  sheetName: string;
+}> {
+  const metadata = await getSpreadsheetMetadata(sheets, spreadsheetId);
+
+  // Search through all sheets for the table
+  for (const sheet of metadata.sheets || []) {
+    // Check if sheetId exists (can be 0, which is valid for first sheet!)
+    if (sheet.properties?.sheetId === null || sheet.properties?.sheetId === undefined) {
+      continue;
+    }
+
+    const sheetName = sheet.properties.title || 'Unknown';
+    const tables = sheet.tables || [];
+
+    for (const table of tables) {
+      if (!table) continue;
+
+      // Match by tableId (string) or name (case-insensitive)
+      const idMatch = table.tableId === tableIdentifier;
+      const nameMatch = table.name
+        ? table.name.toLowerCase() === tableIdentifier.toLowerCase()
+        : false;
+
+      if (idMatch || nameMatch) {
+        if (sheet.properties.sheetId === null || sheet.properties.sheetId === undefined) {
+          throw new UserError(`Sheet "${sheetName}" has invalid ID.`);
+        }
+        return {
+          table,
+          sheetId: sheet.properties.sheetId,
+          sheetName,
+        };
+      }
+    }
+  }
+
+  throw new UserError(
+    `Table "${tableIdentifier}" not found in spreadsheet. Use listTables to see available tables.`
+  );
+}
+
+/**
+ * Lists all tables across all sheets in a spreadsheet.
+ * Optionally filters by sheet name.
+ */
+export async function listAllTables(
+  sheets: Sheets,
+  spreadsheetId: string,
+  sheetNameFilter?: string
+): Promise<
+  Array<{
+    table: sheets_v4.Schema$Table;
+    sheetName: string;
+    sheetId: number;
+  }>
+> {
+  const metadata = await getSpreadsheetMetadata(sheets, spreadsheetId);
+  const result: Array<{
+    table: sheets_v4.Schema$Table;
+    sheetName: string;
+    sheetId: number;
+  }> = [];
+
+  for (const sheet of metadata.sheets || []) {
+    // Check if sheetId exists (can be 0, which is valid for first sheet!)
+    if (sheet.properties?.sheetId === null || sheet.properties?.sheetId === undefined) {
+      continue;
+    }
+
+    // Filter by sheet name if provided
+    if (sheetNameFilter && sheet.properties.title !== sheetNameFilter) continue;
+
+    const sheetName = sheet.properties.title || 'Unknown';
+    const tables = sheet.tables || [];
+
+    for (const table of tables) {
+      if (table) {
+        result.push({
+          table,
+          sheetName,
+          sheetId: sheet.properties.sheetId,
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Creates a new table with specified properties.
+ */
+export async function createTableHelper(
+  sheets: Sheets,
+  spreadsheetId: string,
+  tableDefinition: {
+    name: string;
+    range: sheets_v4.Schema$GridRange;
+    columnProperties?: sheets_v4.Schema$TableColumnProperties[];
+  }
+): Promise<sheets_v4.Schema$Table> {
+  try {
+    const response = await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            addTable: {
+              table: {
+                name: tableDefinition.name,
+                range: tableDefinition.range,
+                columnProperties: tableDefinition.columnProperties,
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const reply = response.data.replies?.[0]?.addTable;
+    if (!reply?.table) {
+      throw new UserError('Failed to create table - no table returned in response.');
+    }
+
+    return reply.table;
+  } catch (error: any) {
+    if (error.code === 400) {
+      throw new UserError(`Invalid table definition: ${error.message}`);
+    }
+    if (error.code === 403) {
+      throw new UserError(`Permission denied. Ensure you have write access to this spreadsheet.`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Deletes a table by ID.
+ */
+export async function deleteTableHelper(
+  sheets: Sheets,
+  spreadsheetId: string,
+  tableId: string
+): Promise<void> {
+  try {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            deleteTable: {
+              tableId,
+            },
+          },
+        ],
+      },
+    });
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Table not found (ID: ${tableId}).`);
+    }
+    if (error.code === 403) {
+      throw new UserError(`Permission denied. Ensure you have write access to this spreadsheet.`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Updates a table's range.
+ */
+export async function updateTableRangeHelper(
+  sheets: Sheets,
+  spreadsheetId: string,
+  tableId: string,
+  newRange: sheets_v4.Schema$GridRange
+): Promise<sheets_v4.Schema$Table> {
+  try {
+    const response = await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            updateTable: {
+              table: {
+                tableId,
+                range: newRange,
+              },
+              fields: 'range',
+            },
+          },
+        ],
+      },
+    });
+
+    // The Google Sheets API may not return the table object in the response
+    // even though the update was successful. Fetch the updated table to return.
+    const { table } = await resolveTableIdentifier(sheets, spreadsheetId, tableId);
+    return table;
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Table not found (ID: ${tableId}).`);
+    }
+    if (error.code === 400) {
+      throw new UserError(`Invalid range: ${error.message}`);
+    }
+    if (error.code === 403) {
+      throw new UserError(`Permission denied. Ensure you have write access to this spreadsheet.`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Appends rows to a table using table-aware insertion.
+ * Gets the table's range and appends values after the last data row.
+ */
+export async function appendToTableHelper(
+  sheets: Sheets,
+  spreadsheetId: string,
+  tableId: string,
+  values: any[][]
+): Promise<{ rowsAppended: number; updatedRange: string }> {
+  try {
+    // First, get the table to find its range
+    const { table, sheetName } = await resolveTableIdentifier(sheets, spreadsheetId, tableId);
+
+    if (!table.range) {
+      throw new UserError('Table does not have a range defined.');
+    }
+
+    // Calculate the range to append to (start after the table's end row)
+    const startRowIndex = table.range.endRowIndex || 0;
+    const startColumnIndex = table.range.startColumnIndex || 0;
+    const endColumnIndex = table.range.endColumnIndex || 0;
+
+    const range = `${sheetName}!${rowColToA1(startRowIndex, startColumnIndex)}:${rowColToA1(
+      startRowIndex + values.length - 1,
+      endColumnIndex - 1
+    )}`;
+
+    // Append the values using the standard values.append API
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values,
+      },
+    });
+
+    return {
+      rowsAppended: values.length,
+      updatedRange: response.data.updates?.updatedRange || range,
+    };
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Table or spreadsheet not found (ID: ${tableId}).`);
+    }
+    if (error.code === 400) {
+      throw new UserError(`Invalid data: ${error.message}`);
+    }
+    if (error.code === 403) {
+      throw new UserError(`Permission denied. Ensure you have write access to this spreadsheet.`);
+    }
+    throw error;
+  }
+}

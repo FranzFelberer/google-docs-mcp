@@ -19,6 +19,14 @@ import { register as copyFormatting } from './copyFormatting.js';
 import { register as freezeRowsAndColumns } from './freezeRowsAndColumns.js';
 import { register as setDropdownValidation } from './setDropdownValidation.js';
 
+// Tables
+import { register as createTable } from './createTable.js';
+import { register as listTables } from './listTables.js';
+import { register as getTable } from './getTable.js';
+import { register as deleteTable } from './deleteTable.js';
+import { register as updateTableRange } from './updateTableRange.js';
+import { register as appendTableRows } from './appendTableRows.js';
+
 export function registerSheetsTools(server: FastMCP) {
   readSpreadsheet(server);
   writeSpreadsheet(server);
@@ -39,4 +47,12 @@ export function registerSheetsTools(server: FastMCP) {
   copyFormatting(server);
   freezeRowsAndColumns(server);
   setDropdownValidation(server);
+
+  // Tables
+  createTable(server);
+  listTables(server);
+  getTable(server);
+  deleteTable(server);
+  updateTableRange(server);
+  appendTableRows(server);
 }

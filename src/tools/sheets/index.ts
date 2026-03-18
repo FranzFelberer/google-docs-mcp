@@ -19,6 +19,7 @@ import { register as copyFormatting } from './copyFormatting.js';
 import { register as freezeRowsAndColumns } from './freezeRowsAndColumns.js';
 import { register as setDropdownValidation } from './setDropdownValidation.js';
 import { register as groupRows } from './groupRows.js';
+import { register as ungroupAllRows } from './ungroupAllRows.js';
 
 // Tables
 import { register as createTable } from './createTable.js';
@@ -49,6 +50,7 @@ export function registerSheetsTools(server: FastMCP) {
   freezeRowsAndColumns(server);
   setDropdownValidation(server);
   groupRows(server);
+  ungroupAllRows(server);
 
   // Tables
   createTable(server);

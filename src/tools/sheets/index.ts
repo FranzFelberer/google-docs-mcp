@@ -21,6 +21,8 @@ import { register as setColumnWidths } from './setColumnWidths.js';
 import { register as autoResizeColumns } from './autoResizeColumns.js';
 import { register as setDropdownValidation } from './setDropdownValidation.js';
 import { register as addConditionalFormatting } from './addConditionalFormatting.js';
+import { register as groupRows } from './groupRows.js';
+import { register as ungroupAllRows } from './ungroupAllRows.js';
 
 // Tables
 import { register as createTable } from './createTable.js';
@@ -53,6 +55,8 @@ export function registerSheetsTools(server: FastMCP) {
   autoResizeColumns(server);
   setDropdownValidation(server);
   addConditionalFormatting(server);
+  groupRows(server);
+  ungroupAllRows(server);
 
   // Tables
   createTable(server);

@@ -17,7 +17,10 @@ import { register as formatCells } from './formatCells.js';
 import { register as readCellFormat } from './readCellFormat.js';
 import { register as copyFormatting } from './copyFormatting.js';
 import { register as freezeRowsAndColumns } from './freezeRowsAndColumns.js';
+import { register as setColumnWidths } from './setColumnWidths.js';
+import { register as autoResizeColumns } from './autoResizeColumns.js';
 import { register as setDropdownValidation } from './setDropdownValidation.js';
+import { register as addConditionalFormatting } from './addConditionalFormatting.js';
 import { register as groupRows } from './groupRows.js';
 import { register as ungroupAllRows } from './ungroupAllRows.js';
 
@@ -48,7 +51,10 @@ export function registerSheetsTools(server: FastMCP) {
   readCellFormat(server);
   copyFormatting(server);
   freezeRowsAndColumns(server);
+  setColumnWidths(server);
+  autoResizeColumns(server);
   setDropdownValidation(server);
+  addConditionalFormatting(server);
   groupRows(server);
   ungroupAllRows(server);
 

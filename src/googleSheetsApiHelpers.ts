@@ -389,6 +389,7 @@ export async function formatCells(
     };
     horizontalAlignment?: 'LEFT' | 'CENTER' | 'RIGHT';
     verticalAlignment?: 'TOP' | 'MIDDLE' | 'BOTTOM';
+    numberFormat?: { type: string; pattern?: string };
   }
 ): Promise<sheets_v4.Schema$BatchUpdateSpreadsheetResponse> {
   try {
@@ -440,6 +441,21 @@ export async function formatCells(
       userEnteredFormat.verticalAlignment = format.verticalAlignment;
     }
 
+    if (format.numberFormat) {
+      userEnteredFormat.numberFormat = {
+        type: format.numberFormat.type,
+        pattern: format.numberFormat.pattern ?? '',
+      };
+    }
+
+    const fields = [
+      'backgroundColor',
+      'textFormat',
+      'horizontalAlignment',
+      'verticalAlignment',
+      ...(format.numberFormat ? ['numberFormat'] : []),
+    ].join(',');
+
     const response = await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: {
@@ -450,8 +466,7 @@ export async function formatCells(
               cell: {
                 userEnteredFormat,
               },
-              fields:
-                'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment)',
+              fields: `userEnteredFormat(${fields})`,
             },
           },
         ],
@@ -591,6 +606,68 @@ export async function setDropdownValidation(
 }
 
 /**
+ * Sets the width (in pixels) of one or more columns.
+ * Each entry may target a single column ("A") or a contiguous range ("A:C").
+ */
+export async function setColumnWidths(
+  sheets: Sheets,
+  spreadsheetId: string,
+  sheetName: string | null | undefined,
+  columnWidths: Array<{ column: string; width: number }>
+): Promise<sheets_v4.Schema$BatchUpdateSpreadsheetResponse> {
+  try {
+    const sheetId = await resolveSheetId(sheets, spreadsheetId, sheetName);
+
+    const requests: sheets_v4.Schema$Request[] = columnWidths.map(({ column, width }) => {
+      const colonIdx = column.indexOf(':');
+      let startIndex: number;
+      let endIndex: number;
+
+      if (colonIdx !== -1) {
+        startIndex = colLettersToIndex(column.slice(0, colonIdx).trim());
+        endIndex = colLettersToIndex(column.slice(colonIdx + 1).trim()) + 1;
+      } else {
+        startIndex = colLettersToIndex(column.trim());
+        endIndex = startIndex + 1;
+      }
+
+      return {
+        updateDimensionProperties: {
+          range: {
+            sheetId,
+            dimension: 'COLUMNS',
+            startIndex,
+            endIndex,
+          },
+          properties: {
+            pixelSize: width,
+          },
+          fields: 'pixelSize',
+        },
+      };
+    });
+
+    const response = await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: { requests },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Spreadsheet not found (ID: ${spreadsheetId}). Check the ID.`);
+    }
+    if (error.code === 403) {
+      throw new UserError(
+        `Permission denied for spreadsheet (ID: ${spreadsheetId}). Ensure you have write access.`
+      );
+    }
+    if (error instanceof UserError) throw error;
+    throw new UserError(`Failed to set column widths: ${error.message || 'Unknown error'}`);
+  }
+}
+
+/**
  * Helper to convert hex color to RGB (0-1 range)
  */
 export function hexToRgb(hex: string): { red: number; green: number; blue: number } | null {
@@ -609,6 +686,55 @@ export function hexToRgb(hex: string): { red: number; green: number; blue: numbe
     green: ((bigint >> 8) & 255) / 255,
     blue: (bigint & 255) / 255,
   };
+}
+
+/**
+ * Appends a BooleanRule conditional format rule to a spreadsheet.
+ */
+export async function addConditionalFormatRule(
+  sheets: Sheets,
+  spreadsheetId: string,
+  ranges: sheets_v4.Schema$GridRange[],
+  conditionType: string,
+  conditionValues: Array<{ userEnteredValue: string }>,
+  format: Record<string, unknown>
+): Promise<void> {
+  try {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            addConditionalFormatRule: {
+              rule: {
+                ranges,
+                booleanRule: {
+                  condition: {
+                    type: conditionType,
+                    values: conditionValues,
+                  },
+                  format,
+                },
+              },
+              index: 0,
+            },
+          },
+        ],
+      },
+    });
+  } catch (error: any) {
+    if (error.code === 404) {
+      throw new UserError(`Spreadsheet not found (ID: ${spreadsheetId}). Check the ID.`);
+    }
+    if (error.code === 403) {
+      throw new UserError(
+        `Permission denied for spreadsheet (ID: ${spreadsheetId}). Ensure you have write access.`
+      );
+    }
+    throw new UserError(
+      `Failed to add conditional format rule: ${error.message || 'Unknown error'}`
+    );
+  }
 }
 
 // --- Table Helper Functions ---

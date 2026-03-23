@@ -179,9 +179,9 @@ async function authenticate(): Promise<OAuth2Client> {
 
   // Start a temporary local server to receive the OAuth callback
   const server = http.createServer();
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => server.listen(0, 'localhost', resolve));
   const port = (server.address() as { port: number }).port;
-  const redirectUri = `http://127.0.0.1:${port}`;
+  const redirectUri = `http://localhost:${port}`;
 
   const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirectUri);
 
@@ -195,7 +195,7 @@ async function authenticate(): Promise<OAuth2Client> {
   // Wait for the OAuth callback
   const code = await new Promise<string>((resolve, reject) => {
     server.on('request', (req, res) => {
-      const url = new URL(req.url!, `http://127.0.0.1:${port}`);
+      const url = new URL(req.url!, `http://localhost:${port}`);
       const authCode = url.searchParams.get('code');
       const error = url.searchParams.get('error');
 

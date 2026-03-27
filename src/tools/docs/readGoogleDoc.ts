@@ -1,7 +1,7 @@
 import type { FastMCP } from 'fastmcp';
 import { UserError } from 'fastmcp';
 import { z } from 'zod';
-import { getDocsClient } from '../../clients.js';
+import { getDocsClient, getDriveClient } from '../../clients.js';
 import { DocumentIdParameter, NotImplementedError } from '../../types.js';
 import * as GDocsHelpers from '../../googleDocsApiHelpers.js';
 import { docsJsonToMarkdown } from '../../markdown-transformer/index.js';
@@ -161,8 +161,34 @@ export function register(server: FastMCP) {
         if (error instanceof NotImplementedError) throw error;
         // Generic fallback for API errors not caught by helpers
         if (error.code === 404) throw new UserError(`Doc not found (ID: ${args.documentId}).`);
-        if (error.code === 403)
-          throw new UserError(`Permission denied for doc (ID: ${args.documentId}).`);
+        if (error.code === 403) {
+          // The Docs API may be blocked by Workspace admin policy even when the Drive API is
+          // accessible. Fall back to drive.files.export() for plain-text format, which uses
+          // the Drive API and respects supportsAllDrives for Shared Drive documents.
+          if (!args.format || args.format === 'text') {
+            try {
+              log.info(
+                `Docs API returned 403, falling back to Drive export for ${args.documentId}`
+              );
+              const drive = await getDriveClient();
+              const exportRes = await drive.files.export(
+                { fileId: args.documentId, mimeType: 'text/plain' },
+                { responseType: 'text' }
+              );
+              const textContent = (exportRes as any).data as string;
+              if (!textContent?.trim()) return 'Document found, but appears empty.';
+              if (args.maxLength && textContent.length > args.maxLength) {
+                return `Content (truncated to ${args.maxLength} chars of ${textContent.length} total):\n---\n${textContent.substring(0, args.maxLength)}\n\n... [Document continues. Use maxLength parameter to adjust limit or remove it to get full content.]`;
+              }
+              return `Content (${textContent.length} characters):\n---\n${textContent}`;
+            } catch (exportError: any) {
+              log.error(`Drive export fallback also failed: ${exportError.message}`);
+            }
+          }
+          throw new UserError(
+            `Permission denied for doc (ID: ${args.documentId}). The Google Docs API may be restricted by your Workspace admin.`
+          );
+        }
         // Extract detailed error information from Google API response
         const errorDetails =
           error.response?.data?.error?.message || error.message || 'Unknown error';

@@ -8,6 +8,8 @@ import { register as addTab } from './addTab.js';
 import { register as appendToGoogleDoc } from './appendToGoogleDoc.js';
 import { register as insertText } from './insertText.js';
 import { register as deleteRange } from './deleteRange.js';
+import { register as modifyText } from './modifyText.js';
+import { register as findAndReplace } from './findAndReplace.js';
 
 // Structure
 import { register as insertTable } from './insertTable.js';
@@ -28,6 +30,8 @@ export function registerDocsTools(server: FastMCP) {
   appendToGoogleDoc(server);
   insertText(server);
   deleteRange(server);
+  modifyText(server);
+  findAndReplace(server);
 
   // Structure
   insertTable(server);

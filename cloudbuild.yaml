@@ -1,0 +1,28 @@
+steps:
+  # Build TypeScript
+  - name: 'node:20-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npm ci
+        npm run build
+
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'GIT_COMMIT=${SHORT_SHA}'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/${PROJECT_ID}/geminicap-docs-mcp/server:${SHORT_SHA}'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/${PROJECT_ID}/geminicap-docs-mcp/server:latest'
+      - '.'
+
+images:
+  - 'europe-west1-docker.pkg.dev/${PROJECT_ID}/geminicap-docs-mcp/server:${SHORT_SHA}'
+  - 'europe-west1-docker.pkg.dev/${PROJECT_ID}/geminicap-docs-mcp/server:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

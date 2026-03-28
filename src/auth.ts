@@ -106,10 +106,18 @@ async function loadClientSecrets(): Promise<{
 // ---------------------------------------------------------------------------
 
 async function authorizeWithServiceAccount(): Promise<JWT> {
-  const serviceAccountPath = process.env.SERVICE_ACCOUNT_PATH!;
+  const serviceAccountPath = process.env.SERVICE_ACCOUNT_PATH;
+  const serviceAccountJson = process.env.GOOGLE_DOCS_MCP_SA_KEY_JSON;
   const impersonateUser = process.env.GOOGLE_IMPERSONATE_USER;
   try {
-    const keyFileContent = await fs.readFile(serviceAccountPath, 'utf8');
+    let keyFileContent: string;
+    if (serviceAccountJson) {
+      keyFileContent = serviceAccountJson;
+    } else if (serviceAccountPath) {
+      keyFileContent = await fs.readFile(serviceAccountPath, 'utf8');
+    } else {
+      throw new Error('No service account credentials found.');
+    }
     const serviceAccountKey = JSON.parse(keyFileContent);
 
     const auth = new JWT({
@@ -262,8 +270,8 @@ async function authenticate(): Promise<OAuth2Client> {
  *   3. Interactive browser OAuth flow -> OAuth2Client (saves token for next time)
  */
 export async function authorize(): Promise<OAuth2Client | JWT> {
-  if (process.env.SERVICE_ACCOUNT_PATH) {
-    logger.info('Service account path detected. Attempting service account authentication...');
+  if (process.env.SERVICE_ACCOUNT_PATH || process.env.GOOGLE_DOCS_MCP_SA_KEY_JSON) {
+    logger.info('Service account credentials detected. Attempting service account authentication...');
     return authorizeWithServiceAccount();
   }
 
